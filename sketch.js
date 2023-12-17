@@ -3,58 +3,77 @@ let worldx, worldy;
 let shiftx, shifty;
 let platformSprites = []; // Array to hold the sprites
 let character;
-const GRAVITY = 0.5;
-const JUMPF = -15;
-const MOVEF = 2;
+let GRAVITY = 0.8;
+let JUMPF = -25;
+let MOVEF = 2.3;
 let onGround = false;
-const FRIC=.85;//friction
+let FRIC=.85;//friction
 let hforce;//horizontal force
 let haccel;//horizontal accel  
-const MAX_SPEED=10; 
+let MAX_SPEED=18; 
 let lastJumpTime = 0;
-const DOUBLE_JUMP_INTERVAL = 500; //500ms
+let BOOST_DOUBLE_JUMP_INTERVAL = 200; //200ms limit for a REALLY powerful 2nd jump
+let REG_DOUBLE_JUMP_INTERVAL=600; //600ms limit for regular double jumps
+let isAPressed = false;
+let isDPressed = false;
+let canDoubleJump;
+
+let noiseC;//noise level
+let noiseCT;//noise level trigger sprite
+let noiseCanvas
 
 function preload(){
     //preload background image
     bgImage = loadImage('Data/bg.png');
-  }
+}
 
-  function setup(){
-    createCanvas(windowWidth, windowHeight);
-    bgImage.resize(4096,0);
-    worldx = bgImage.width/2;
-    worldy = bgImage.height/2;
+function setup(){
+    let originalbgW=bgImage.width;
+
+    bgImage.resize(windowWidth*4/3, 0); // resize image to show 3/4 of its width in browser window
+
+    let canvasWidth = windowWidth; //canvas same size as window
+
+    // Calculate the canvas height based on the window's aspect ratio
+    let canvasHeight = canvasWidth * (windowHeight / windowWidth);
+
+    createCanvas(canvasWidth, canvasHeight);
+    print(windowWidth, windowHeight, "window Width + Height");
+    print(canvasWidth, canvasHeight, "canvas Width + Height");
+
+    let scale=windowWidth*4/3/originalbgW;
+    print("scale "+ scale);
 
     platforms = [
-        //{ x: 0 * 4, y: 715 * 4, width: 1024 * 4, height: 307 * 4 },
+        //{ x: 0 * scale, y: 715 * scale, width: 1024 * scale, height: 307 * scale },
         
-        { x: 105 * 4, y: 160 * 4, width: 300 * 4, height: 28 * 4 },
-        { x: 442 * 4, y: 193 * 4, width: 370.5 * 4, height: 26 * 4 },
-        { x: 96 * 4, y: 273 * 4, width: 317 * 4, height: 26 * 4 }, 
-        { x: 872 * 4, y: 295 * 4, width: 151 * 4, height: 28 * 4 },
-        { x: 203 * 4, y: 329 * 4, width: 210 * 4, height: 27 * 4 },
-        { x: 558 * 4, y: 350 * 4, width: 230 * 4, height: 26 * 4 },
-        { x: 413 * 4, y: 383 * 4, width: 112 * 4, height: 26 * 4 },
-        { x: 781 * 4, y: 409 * 4, width: 175 * 4, height: 32 * 4 },
-        { x: 525 * 4, y: 425 * 4, width: 105 * 4, height: 26 * 4 },
-        { x: 0 * 4, y: 440 * 4, width: 212 * 4, height: 32 * 4 },
-        { x: 627 * 4, y: 474 * 4, width: 104 * 4, height: 30 * 4 },
-        { x: 198 * 4, y: 515 * 4, width: 112 * 4, height: 28 * 4 },
-        { x: 727 * 4, y: 515 * 4, width: 120 * 4, height: 30 * 4 },
-        { x: 618 * 4, y: 570 * 4, width: 108 * 4, height: 25 * 4 },
-        { x: 302 * 4, y: 602 * 4, width: 112 * 4, height: 25 * 4 },
-        { x: 0 * 4, y: 613 * 4, width: 116 * 4, height: 32 * 4 },
-        { x: 894 * 4, y: 613 * 4, width: 133 * 4, height: 31 * 4 },
-        { x: 653 * 4, y: 629 * 4, width: 115 * 4, height: 26 * 4 },
-        { x: 246 * 4, y: 660 * 4, width: 121 * 4, height: 26 * 4 },
-        { x: 544.5 * 4, y: 683 * 4, width: 311.5 * 4, height: 26 * 4 },
-        { x: 0 * 4, y: 719 * 4, width: 502 * 4, height: 26 * 4 },
-        { x: 673 * 4, y: 796 * 4, width: 351 * 4, height: 31 * 4 },
-        { x: 306 * 4, y: 936 * 4, width: 87 * 4, height: 41 * 4 },
-        { x: 0 * 4, y: 977 * 4, width: 1024 * 4, height: 47 * 4 },
-        { x: 0 * 4, y: 933 * 4, width: 35 * 4, height: 47 * 4 },
-        { x: 185 * 4, y: 863 * 4, width: 75 * 4, height: 30 * 4 },
-        { x: 29 * 4, y: 896.5 * 4, width: 171 * 4, height: 26 * 4 },
+        { x: 105 * scale, y: 160 * scale, width: 300 * scale, height: 28 * scale },
+        { x: 442 * scale, y: 193 * scale, width: 370.5 * scale, height: 26 * scale },
+        { x: 96 * scale, y: 273 * scale, width: 317 * scale, height: 26 * scale }, 
+        { x: 872 * scale, y: 295 * scale, width: 151 * scale, height: 28 * scale },
+        { x: 203 * scale, y: 329 * scale, width: 210 * scale, height: 27 * scale },
+        { x: 558 * scale, y: 350 * scale, width: 230 * scale, height: 26 * scale },
+        { x: 413 * scale, y: 383 * scale, width: 112 * scale, height: 26 * scale },
+        { x: 781 * scale, y: 409 * scale, width: 175 * scale, height: 32 * scale },
+        { x: 525 * scale, y: 425 * scale, width: 105 * scale, height: 26 * scale },
+        { x: 0 * scale, y: 440 * scale, width: 212 * scale, height: 32 * scale },
+        { x: 627 * scale, y: 474 * scale, width: 104 * scale, height: 30 * scale },
+        { x: 198 * scale, y: 515 * scale, width: 112 * scale, height: 28 * scale },
+        { x: 727 * scale, y: 515 * scale, width: 120 * scale, height: 30 * scale },
+        { x: 618 * scale, y: 570 * scale, width: 108 * scale, height: 25 * scale },
+        { x: 302 * scale, y: 602 * scale, width: 112 * scale, height: 25 * scale },
+        { x: 0 * scale, y: 613 * scale, width: 116 * scale, height: 32 * scale },
+        { x: 894 * scale, y: 613 * scale, width: 133 * scale, height: 31 * scale },
+        { x: 653 * scale, y: 629 * scale, width: 115 * scale, height: 26 * scale },
+        { x: 246 * scale, y: 660 * scale, width: 121 * scale, height: 26 * scale },
+        { x: 544.5 * scale, y: 683 * scale, width: 311.5 * scale, height: 26 * scale },
+        { x: 0 * scale, y: 719 * scale, width: 502 * scale, height: 26 * scale },
+        { x: 673 * scale, y: 796 * scale, width: 351 * scale, height: 31 * scale },
+        { x: 306 * scale, y: 936 * scale, width: 87 * scale, height: 41 * scale },
+        { x: 0 * scale, y: 977 * scale, width: 1024 * scale, height: 47 * scale },
+        { x: 0 * scale, y: 933 * scale, width: 35 * scale, height: 47 * scale },
+        { x: 185 * scale, y: 863 * scale, width: 75 * scale, height: 30 * scale },
+        { x: 29 * scale, y: 896.5 * scale, width: 171 * scale, height: 26 * scale },
 
       ];
 
@@ -70,141 +89,153 @@ function preload(){
 
     platformSprites[platformSprites.length - 1].rotation = -24.2;
 
-    character = {
-        x: width / 2,
-        y: height / 2,
-        w: 50,
-        h: 50,
-        vx: 0,
-        vy: 0,
-        ax: 0,
-        ay: GRAVITY
-    };
-  }
+    character = createSprite(width * 0.1, width * 1.25, 50);
+    character.shapeColor = color(255, 0, 0); // Set the color or add an image
+    character.velocity.x = 0;
+    character.velocity.y = 0;
+    
+
+    //stuff for making noise...
+    let input = new p5.AudioIn();
+    input.start();
+    
+
+    //initialize trigger sprite
+    noiseCT = createSprite(width*.83, width*.73, width/40, width/40);
+    noiseCT.shapeColor = color(0, 255, 0,128); //green
+
+    noiseC = new NoiseChallenge(input, noiseCT);//noise challenge
+    /*i had a lot of trouble getting the trigget to work and could
+    never figure out. I asked chatgpt and learned that I had to 
+    initialize noiseCT before noiseC; 
+    
+    I moved the noiseC line up for a bit because I thought it would 
+    make more sense to create the level before the trigger sprite, 
+    but that's EXACTLY what broke it
+    */ 
+    
+    noiseCanvas=createGraphics(2000,1000);
+    noiseCanvas.background(255);
+    //https://stackoverflow.com/questions/37240287/can-i-create-multiple-canvas-elements-on-same-page-using-p5js
+    /*through a lot of headache and digging around I found 
+    a way to draw other graphics in a pseudo canvas on top 
+    of my already existing canvas, without needing me to actually
+    create one*/
+}
 
   
 
-  function draw(){
+
+
+function draw() {
     background(0);
-    shiftx = width / 2 - worldx;
-    shifty = height / 2 - worldy;
+
+    // Calculate desired camera position
+    let cameraX = constrain(character.position.x - width / 2, 0, bgImage.width - width);
+    let cameraY = constrain(character.position.y - height / 2, 0, bgImage.height - height);
+
+    // Update shiftx and shifty based on camera position
+    shiftx = -cameraX;
+    shifty = -cameraY;
 
     push();
     translate(shiftx, shifty);
     image(bgImage, 0, 0);
 
-    handleCharacter();//handle character movement and physics
-
-    checkPlatformCollisions();//check for collisions
-
-    // draw character
-    fill(255, 0, 0);
-    ellipse(character.x, character.y, character.w, character.h);
+    handleCharacter(); // handle character movement and physics
+    checkPlatformCollisions(); // check for collisions
 
     drawSprites();
     pop();
-  }
+
+    noiseC.update(character,noiseCanvas);
+
+    if (noiseC.active){
+        character.velocity.x=0;
+        character.velocity.y=0;
+        image(noiseCanvas, (width - noiseCanvas.width) / 2, (height - noiseCanvas.height) / 2);
+    }
+
+    
+}
     
 
-  function keyPressed() {
+
+
+function keyPressed() {
     let currentTime = millis();
 
-    if (key === ' ' && (onGround || (canDoubleJump && currentTime - lastJumpTime < DOUBLE_JUMP_INTERVAL))) {
-        character.vy = JUMPF;
-
-        if (!onGround) {
-            canDoubleJump = false; // Disable further double jumps
-        }
-
-        lastJumpTime = currentTime; // Record the time of the jump
-    }
-    
+    // Regular Jump
     if (key === ' ' && onGround) {
-        character.vy = JUMPF;
+        character.velocity.y = JUMPF;
         onGround = false;
+        canDoubleJump = true; // Allow double jump
+        lastJumpTime = currentTime;
+    } 
+    // Double Jump
+    else if (key === ' ' && canDoubleJump && !onGround) {
+        if (currentTime - lastJumpTime <= BOOST_DOUBLE_JUMP_INTERVAL){
+            character.velocity.y = JUMPF - 18; // Boosted double jump
+        } else if (currentTime-lastJumpTime<=REG_DOUBLE_JUMP_INTERVAL){
+            character.velocity.y = JUMPF; // Regular double jump
+        }
+        canDoubleJump = false; // Disable further double jumps
+        lastJumpTime = currentTime;
     }
+
+    // Movement keys
     if (key === 'a') {
-        character.ax = -MOVEF; // Accelerate left
+        isAPressed = true;
     }
     if (key === 'd') {
-        character.ax = MOVEF; // Accelerate right
+        isDPressed = true;
     }
 }
 
+
+
 function keyReleased() {
-    if (key === 'a' || key === 'd') {
-        character.ax = 0; // Stop accelerating when key is released
+    if (key === 'a') {
+        isAPressed = false;
+    }
+    if (key === 'd') {
+        isDPressed = false;
     }
 }
 
 function handleCharacter() {
-    // Apply gravity
-    character.vy += GRAVITY;
+    //apply gravity
+    character.velocity.y += GRAVITY;
 
-    // Apply horizontal acceleration
-    character.vx += character.ax;
-
-    // Apply friction when on the ground and not moving horizontally
-    if (onGround && character.ax === 0) {
-        character.vx *= FRIC;
+    // horizontal movement based on key presses
+    if (isAPressed) {
+        character.velocity.x-=MOVEF;
+    }
+    if (isDPressed) {
+        character.velocity.x+=MOVEF;
     }
 
-    // Limit velocity to prevent excessive speed
-    character.vx = constrain(character.vx, -MAX_SPEED, MAX_SPEED);
-
-    // Update position
-    character.x += character.vx;
-    character.y += character.vy;
-
-    if (onGround){
-        canDoubleJump = true;
+    //friction
+    if (onGround && character.velocity.x != 0) {
+        character.velocity.x*=FRIC;
     }
 
-    
+    //limits velocity
+    character.velocity.x=constrain(character.velocity.x, -MAX_SPEED, MAX_SPEED);
 }
 
-  function checkPlatformCollisions(){
-    //reset onGround flag
+
+
+function checkPlatformCollisions() {
     onGround = false;
 
-    //collision detection with platforms
-    
     for (let sprite of platformSprites) {
-        // Check collision with sides
-        if (character.x + character.w / 2 > sprite.position.x - sprite.width / 2 &&
-            character.x - character.w / 2 < sprite.position.x + sprite.width / 2) {
-            
-            // Check collision with bottom
-            if (character.y - character.h / 2 < sprite.position.y + sprite.height / 2 &&
-                character.y - character.h / 2 > sprite.position.y) {
-                character.vy *= -1; // Reverse vertical velocity
+        character.collide(sprite, function() {
+            if (character.velocity.y >= 0) { // Check if character is falling
+                onGround = true;
+                canDoubleJump = true; // Reset double jump on landing
+                character.velocity.y = 0; // Stop downward movement
             }
-    
-            // Check collision with top
-            else if (character.y + character.h / 2 > sprite.position.y - sprite.height / 2 &&
-                     character.y + character.h / 2 < sprite.position.y) {
-                character.y = sprite.position.y - sprite.height / 2 - character.h / 2; // Place character on top of platform
-                character.vy = 0; // Stop vertical movement
-                onGround = true; // Set onGround to true
-            }
-        }
-    
-        // Check collision with left and right sides
-        if (character.y + character.h / 2 > sprite.position.y - sprite.height / 2 &&
-            character.y - character.h / 2 < sprite.position.y + sprite.height / 2) {
-            
-            // Right side collision
-            if (character.x - character.w / 2 < sprite.position.x + sprite.width / 2 &&
-                character.x > sprite.position.x) {
-                character.vx *= -1; // Reverse horizontal velocity
-            }
-    
-            // Left side collision
-            else if (character.x + character.w / 2 > sprite.position.x - sprite.width / 2 &&
-                     character.x < sprite.position.x) {
-                character.vx *= -1; // Reverse horizontal velocity
-            }
-        }
+        });
     }
-    
 }
