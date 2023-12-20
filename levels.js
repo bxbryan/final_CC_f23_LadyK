@@ -1,11 +1,12 @@
 class NoiseChallenge {
-    constructor(input, noiseCT, threshold) {
-        this.input = input;
+    constructor(input1, noiseCT, threshold) {
+        this.input1 = input1;
         this.triggerSprite = noiseCT;
         this.active = false;
         this.greenCount = 0;
         this.grayCount=0
         this.threshold=threshold;
+				this.won=false;
     }
 
     start() {
@@ -29,7 +30,7 @@ class NoiseChallenge {
     }
 
     drawLevel() {
-        let vol = this.input.getLevel();
+        let vol = this.input1.getLevel();
         let thres = this.threshold;
         console.log("thres is ",thres);
         console.log("vol is ",vol);
@@ -40,26 +41,30 @@ class NoiseChallenge {
         if (vol > thres) {
             console.log("NOISEEEEEE!")
             this.noiseCanvas.fill(0, 255, 0, 120);
-            let mapped = map(vol, 0, 1, 55, 600);
+            let mapped = map(vol, 0, 1, 30, 200);
             this.noiseCanvas.ellipse(random(0, noiseCanvas.width), random(0, noiseCanvas.height), mapped, mapped);
             this.greenCount += 1;
             console.log("vol",vol," gc",this.greenCount);
-            /*I spent about another 2 hours trynig to figure out 
-            why not opening the console broke everything
-            but simply could not, and I resurted to this in a lot of frustration*/
 
         } else if (vol < thres) {
             this.noiseCanvas.fill(255);
-            let mapped = map(vol, 0, 1, 30, 600);
+            let mapped = map(vol, 0, 1, 15, 200);
             this.noiseCanvas.ellipse(random(0, noiseCanvas.width), random(0, noiseCanvas.height), mapped, mapped);
             this.grayCount++;
         }
 
-        if (this.greenCount > 100) {
-            this.active = false;
-            this.noiseCanvas.clear();
-            //transition back to main game
-        }
+        if (this.greenCount > 100 && !this.won) {
+        this.active = false;
+        this.noiseCanvas.clear();
+        this.won = true;
+    	}
+			//transition back to main game
+				if(this.won===true){
+					finishCount++;
+					this.won=false;
+					print("finishc ",finishCount);
+					return;
+				}
     }
 }
 

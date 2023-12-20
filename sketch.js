@@ -3,20 +3,22 @@ let worldx, worldy;
 let shiftx, shifty;
 let platformSprites = []; // Array to hold the sprites
 let character;
-let GRAVITY = 0.8;
-let JUMPF = -25;
-let MOVEF = 2.3;
+let GRAVITY = 0.7;
+let JUMPF = -14;
+let MOVEF = 1.1;
 let onGround = false;
 let FRIC = .85;//friction
 let hforce;//horizontal force
 let haccel;//horizontal accel  
-let MAX_SPEED = 18;
+let MAX_SPEED = 7;
 let lastJumpTime = 0;
 let BOOST_DOUBLE_JUMP_INTERVAL = 200; //200ms limit for a REALLY powerful 2nd jump
 let REG_DOUBLE_JUMP_INTERVAL = 600; //600ms limit for regular double jumps
 let isAPressed = false;
 let isDPressed = false;
 let canDoubleJump;
+let BOOSTJUMPF=8;
+let finishCount=0;//levels finished
 
 let noiseC;//noise level
 let noiseCT;//noise level trigger sprite
@@ -25,6 +27,12 @@ let noiseCanvas;
 let noiseC2;
 let noiseCT2;
 let noiseCanvas2;
+
+let noiseC3;
+let noiseCT3;
+let noiseCanvas3;
+
+let winCanvas;
 
 function preload() {
     //preload background image
@@ -93,15 +101,15 @@ function setup() {
 
     platformSprites[platformSprites.length - 1].rotation = -24.2;
 
-    character = createSprite(width * 0.1, width * 1.25, 70);
+    character = createSprite(width * 0.1, width * 1.25, 20);
     character.shapeColor = color(255, 0, 0); // Set the color or add an image
     character.velocity.x = 0;
     character.velocity.y = 0;
 
 
     //stuff for making noise...
-    let input = new p5.AudioIn();
-    input.start();
+    let input1 = new p5.AudioIn();
+    input1.start();
 
 
 
@@ -109,7 +117,7 @@ function setup() {
     noiseCT = createSprite(width * .83, width * .73, width / 30, width / 30);
     noiseCT.shapeColor = color(0, 255, 0, 128); //green
 
-    noiseC = new NoiseChallenge(input, noiseCT, 0.03);//noise challenge
+    noiseC = new NoiseChallenge(input1, noiseCT, 0.08);//noise challenge
     /*i had a lot of trouble getting the trigget to work and could
     never figure out. I asked chatgpt and learned that I had to 
     initialize noiseCT before noiseC; 
@@ -119,7 +127,7 @@ function setup() {
     but that's EXACTLY what broke it
     */
 
-    noiseCanvas = createGraphics(2000, 1000);
+    noiseCanvas = createGraphics(600, 300);
     noiseCanvas.background(255);
     //https://stackoverflow.com/questions/37240287/can-i-create-multiple-canvas-elements-on-same-page-using-p5js
     /*through a lot of headache and digging around I found 
@@ -131,10 +139,29 @@ function setup() {
     noiseCT2 = createSprite(width * .45, width * .92, width / 20, width / 40);
     noiseCT2.shapeColor = color(0, 0, 255, 128); //blue
 
-    noiseC2 = new NoiseChallenge(input, noiseCT2, 0.15);
-    noiseCanvas2 = createGraphics(2000, 1300);
+    noiseC2 = new NoiseChallenge(input1, noiseCT2, 0.55);
+    noiseCanvas2 = createGraphics(600, 400);
     noiseCanvas2.background(255);
+	
+	
+	
+		noiseCT3 = createSprite(width * .25, width * .18, width / 20, width / 20);
+    noiseCT3.shapeColor = color(255, 0, 0, 128); //red
+
+    noiseC3 = new NoiseChallenge(input1, noiseCT3, 0.85);
+    noiseCanvas3 = createGraphics(700, 500);
+    noiseCanvas3.background(255);
     
+	
+	
+    winCanvas = createGraphics(600, 400);
+    winCanvas.background(255);
+		winCanvas.textAlign(CENTER, CENTER); //text settings for win canvas
+		winCanvas.textSize(32);
+		winCanvas.fill(0);
+
+		//adding text here
+		winCanvas.text("You won!", winCanvas.width / 2, winCanvas.height / 2);
 }
 
 
@@ -182,7 +209,25 @@ function draw() {
         image(noiseCanvas2, (width - noiseCanvas2.width) / 2, (height - noiseCanvas2.height) / 2);
     }
     
+
+
+		noiseC3.update(character, noiseCanvas3);
+
+    if (noiseC3.active) {
+        character.velocity.x = 0;
+        character.velocity.y = 0;
+        image(noiseCanvas3, (width - noiseCanvas3.width) / 2, (height - noiseCanvas3.height) / 2);
+    }
+    
+	
+	if (finishCount===3){
+		console.log("won!!!!!");
+		
+		image(winCanvas, (width - winCanvas.width) / 2, (height - winCanvas.height) / 2);
+		
+	}
 }
+
 
 
 
@@ -200,7 +245,7 @@ function keyPressed() {
     // Double Jump
     else if (key === ' ' && canDoubleJump && !onGround) {
         if (currentTime - lastJumpTime <= BOOST_DOUBLE_JUMP_INTERVAL) {
-            character.velocity.y = JUMPF - 16; // Boosted double jump
+            character.velocity.y = JUMPF - BOOSTJUMPF; // Boosted double jump
         } else if (currentTime - lastJumpTime <= REG_DOUBLE_JUMP_INTERVAL) {
             character.velocity.y = JUMPF; // Regular double jump
         }
@@ -213,6 +258,7 @@ function keyPressed() {
         isAPressed = true;
     }
     if (key === 'd') {
+			console.log("d pressed");
         isDPressed = true;
     }
 }
